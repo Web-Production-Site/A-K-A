@@ -23,6 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000);
     }
 
+    // دالة حساب checksum أقوى
+    function calculateChecksum(bytes) {
+        let checksum = 0;
+        for (let i = 0; i < bytes.length; i++) {
+            checksum = ((checksum << 5) - checksum + bytes[i]) | 0;
+        }
+        return checksum & 0xFF; // أخذ آخر 8 بتات فقط
+    }
+
     encryptBtn.addEventListener('click', () => {
         const text = inputText.value;
         if (!text.trim()) {
@@ -33,11 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const encoder = new TextEncoder();
         const bytes = encoder.encode(text);
         
-        // حساب checksum (بصمة رقمية)
-        let checksum = 0;
-        for (let byte of bytes) {
-            checksum = (checksum + byte) % 256;
-        }
+        // حساب checksum
+        const checksum = calculateChecksum(bytes);
         
         // تحويل البايتات إلى binary
         let binary = '';
