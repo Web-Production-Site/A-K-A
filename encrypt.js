@@ -15,23 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentEncrypted = '';
 
-    function textToZeroWidth(text) {
-        if (!text) return '';
-        const encoder = new TextEncoder();
-        const bytes = encoder.encode(text);
-        let binary = '';
-        for (let byte of bytes) {
-            binary += byte.toString(2).padStart(8, '0');
-        }
-        
-        let zeroWidth = '';
-        for (let bit of binary) {
-            zeroWidth += (bit === '0') ? ZWSP : ZWNJ;
-        }
-        zeroWidth += ZWJ + BOM;
-        return zeroWidth;
-    }
-
     function showToast(message) {
         toast.textContent = message;
         toast.classList.add('show');
@@ -46,9 +29,33 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('الرجاء كتابة رسالة أولاً');
             return;
         }
-        const encrypted = textToZeroWidth(text);
-        // إضافة الأقواس المربعة حول النص المشفر
-        currentEncrypted = '[' + encrypted + ']';
+        
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(text);
+        
+        // حساب checksum (بصمة رقمية)
+        let checksum = 0;
+        for (let byte of bytes) {
+            checksum = (checksum + byte) % 256;
+        }
+        
+        // تحويل البايتات إلى binary
+        let binary = '';
+        for (let byte of bytes) {
+            binary += byte.toString(2).padStart(8, '0');
+        }
+        // إضافة checksum في النهاية
+        binary += checksum.toString(2).padStart(8, '0');
+        
+        // تحويل إلى zero-width
+        let zeroWidth = '';
+        for (let bit of binary) {
+            zeroWidth += (bit === '0') ? ZWSP : ZWNJ;
+        }
+        zeroWidth += ZWJ + BOM;
+        
+        // استخدام ¦ بدلاً من []
+        currentEncrypted = '¦' + zeroWidth + '¦';
         outputText.textContent = currentEncrypted;
         resultSection.classList.remove('hidden');
         showToast('تم التشفير بنجاح');
