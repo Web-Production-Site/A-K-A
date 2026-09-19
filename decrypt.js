@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const BOM = '\uFEFF'; 
 
     function zeroWidthToText(zeroWidth) {
-        // إزالة الأقواس المربعة إذا وجدت
-        let clean = zeroWidth.replace(/^\[|\]$/g, '');
+        // إزالة ¦ من البداية والنهاية
+        let clean = zeroWidth.replace(/^¦|¦$/g, '');
         
         // إزالة علامات النهاية
         clean = clean.replace(new RegExp(`[${ZWJ}${BOM}]`, 'g'), '');
@@ -26,13 +26,31 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (char === ZWNJ) binary += '1';
         }
 
-        if (binary.length === 0 || binary.length % 8 !== 0) {
+        // يجب أن يكون الطول على الأقل 16 (8 للرسالة + 8 للـ checksum)
+        if (binary.length < 16 || binary.length % 8 !== 0) {
             return 'خطأ: النص المشفر غير صالح أو تالف.';
         }
 
-        const bytes = new Uint8Array(binary.length / 8);
+        // استخراج checksum (آخر 8 بتات)
+        const checksumBinary = binary.substr(binary.length - 8, 8);
+        const receivedChecksum = parseInt(checksumBinary, 2);
+        
+        // البايتات الفعلية
+        const dataBinary = binary.substr(0, binary.length - 8);
+        const bytes = new Uint8Array(dataBinary.length / 8);
         for (let i = 0; i < bytes.length; i++) {
-            bytes[i] = parseInt(binary.substr(i * 8, 8), 2);
+            bytes[i] = parseInt(dataBinary.substr(i * 8, 8), 2);
+        }
+        
+        // حساب checksum الفعلي
+        let calculatedChecksum = 0;
+        for (let byte of bytes) {
+            calculatedChecksum = (calculatedChecksum + byte) % 256;
+        }
+        
+        // التحقق من صحة الرسالة
+        if (calculatedChecksum !== receivedChecksum) {
+            return '⚠️ تم تعديل الرسالة أو أنها تالفة';
         }
 
         const decoder = new TextDecoder();
@@ -57,7 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const decrypted = zeroWidthToText(cipher);
         outputDecrypted.textContent = decrypted;
         decryptedSection.classList.remove('hidden');
-        showToast('تم فك التشفير بنجاح');
+        
+        if (decrypted === '⚠️ تم تعديل الرسالة أو أنها تالفة') {
+            showToast('الرسالة تم تعديلها');
+        } else {
+            showToast('تم فك التشفير بنجاح');
+        }
     });
 
     newMessageBtn.addEventListener('click', () => {
