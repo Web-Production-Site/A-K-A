@@ -14,7 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const BOM = '\uFEFF'; 
 
     function zeroWidthToText(zeroWidth) {
-        let clean = zeroWidth.replace(new RegExp(`[${ZWJ}${BOM}]`, 'g'), '');
+        // إزالة الأقواس المربعة إذا وجدت
+        let clean = zeroWidth.replace(/^\[|\]$/g, '');
+        
+        // إزالة علامات النهاية
+        clean = clean.replace(new RegExp(`[${ZWJ}${BOM}]`, 'g'), '');
         
         let binary = '';
         for (let char of clean) {
