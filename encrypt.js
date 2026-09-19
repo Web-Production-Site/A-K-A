@@ -46,8 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('الرجاء كتابة رسالة أولاً');
             return;
         }
-        currentEncrypted = textToZeroWidth(text);
-        outputText.textContent = currentEncrypted || '(النص فارغ ظاهرياً)';
+        const encrypted = textToZeroWidth(text);
+        // إضافة الأقواس المربعة حول النص المشفر
+        currentEncrypted = '[' + encrypted + ']';
+        outputText.textContent = currentEncrypted;
         resultSection.classList.remove('hidden');
         showToast('تم التشفير بنجاح');
     });
