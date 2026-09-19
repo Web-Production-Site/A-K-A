@@ -13,6 +13,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const ZWJ = '\u200D'; 
     const BOM = '\uFEFF'; 
 
+    // دالة حساب checksum (نفس المستخدمة في التشفير)
+    function calculateChecksum(bytes) {
+        let checksum = 0;
+        for (let i = 0; i < bytes.length; i++) {
+            checksum = ((checksum << 5) - checksum + bytes[i]) | 0;
+        }
+        return checksum & 0xFF;
+    }
+
     function zeroWidthToText(zeroWidth) {
         // إزالة ¦ من البداية والنهاية
         let clean = zeroWidth.replace(/^¦|¦$/g, '');
@@ -35,26 +44,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const checksumBinary = binary.substr(binary.length - 8, 8);
         const receivedChecksum = parseInt(checksumBinary, 2);
         
-        // البايتات الفعلية
+        // البايتات الفعلية (كل شيء ما عدا آخر 8 بتات)
         const dataBinary = binary.substr(0, binary.length - 8);
+        
+        // تحويل binary إلى bytes
         const bytes = new Uint8Array(dataBinary.length / 8);
         for (let i = 0; i < bytes.length; i++) {
             bytes[i] = parseInt(dataBinary.substr(i * 8, 8), 2);
         }
         
         // حساب checksum الفعلي
-        let calculatedChecksum = 0;
-        for (let byte of bytes) {
-            calculatedChecksum = (calculatedChecksum + byte) % 256;
-        }
+        const calculatedChecksum = calculateChecksum(bytes);
         
         // التحقق من صحة الرسالة
         if (calculatedChecksum !== receivedChecksum) {
             return '⚠️ تم تعديل الرسالة أو أنها تالفة';
         }
 
-        const decoder = new TextDecoder();
-        return decoder.decode(bytes);
+        // فك التشفير باستخدام TextDecoder
+        try {
+            const decoder = new TextDecoder();
+            return decoder.decode(bytes);
+        } catch (e) {
+            return 'خطأ: فشل فك التشفير';
+        }
     }
 
     function showToast(message) {
